@@ -1,5 +1,5 @@
 ﻿<Module>
-  <Name value="Bannerlords.DistinguishedService"/>
+  <Name value="Bannerlord.DistinguishedService"/>
   <Id value="DistinguishedService110"/>
   <Version value="v6.2.0"/>
   <SingleplayerModule value="true"/>
