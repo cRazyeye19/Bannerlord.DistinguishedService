@@ -1,4 +1,4 @@
-# Bannerlords.DistinguishedService
+# Bannerlord.DistinguishedService
 
 A port of the **Distinguished Service** mod for *Mount & Blade II: Bannerlord* to game version **v1.4.7**.
 
