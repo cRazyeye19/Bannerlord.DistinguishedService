@@ -1,0 +1,25 @@
+﻿<Module>
+  <Name value="Bannerlords.DistinguishedService"/>
+  <Id value="DistinguishedService110"/>
+  <Version value="v6.2.0"/>
+  <SingleplayerModule value="true"/>
+  <MultiplayerModule value="false"/>
+  <DependedModules>
+    <DependedModule Id="Native"/>
+    <DependedModule Id="SandBoxCore"/>
+    <DependedModule Id="Sandbox"/>
+  </DependedModules>
+  <SubModules>
+    <SubModule>
+      <Name value="DistinguishedService110"/>
+      <DLLName value="DistinguishedService110.dll"/>
+      <SubModuleClassType value="DistinguishedService.dsSubModule"/>
+      <Tags>
+        <Tag key="DedicatedServerType" value="none"/>
+        <Tag key="IsNoRenderModeElement" value="false"/>
+      </Tags>
+    </SubModule>
+  </SubModules>
+  <Xmls/>
+</Module>
+
