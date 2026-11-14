@@ -72,6 +72,26 @@ internal class PromotionManager
 
 	public int max_ai_comp_per_party { get; set; }
 
+	private static readonly Dictionary<string, string[]> BanditCultureMap = new Dictionary<string, string[]>
+	{
+		{ "sea_raiders", new[] { "nord" } },
+		{ "mountain_bandits", new[] { "vlandia" } },
+		{ "forest_bandits", new[] { "battania" } },
+		{ "desert_bandits", new[] { "aserai" } },
+		{ "steppe_bandits", new[] { "khuzait" } },
+		{ "looters", new[] { "empire" } }
+	};
+
+	public static CultureObject ResolveHeroCulture(CultureObject sourceCulture)
+	{
+		if (sourceCulture == null || !BanditCultureMap.TryGetValue(sourceCulture.StringId, out string[] candidates) || candidates.Length == 0)
+		{
+			return sourceCulture;
+		}
+		CultureObject mapped = Game.Current.ObjectManager.GetObject<CultureObject>(candidates[MBRandom.RandomInt(candidates.Length)]);
+		return mapped ?? sourceCulture;
+	}
+
 	public PromotionManager()
 	{
 		string path = Path.Combine(ModuleHelper.GetModuleFullPath("DistinguishedService110"), "Settings.xml");
@@ -94,6 +114,7 @@ internal class PromotionManager
 		skp_per_excess_kill = settings.skillpoints_per_excess_kill;
 		up_front_cost = settings.up_front_cost;
 		fill_perks = settings.fill_in_perks;
+		ignore_cautions = settings.disable_caution_text;
 		respect_companion_limit = settings.respect_companion_limit;
 		base_additional_skill_points = settings.base_additional_skill_points;
 		leadership_points_per_50_extra_skill_points = settings.leadership_points_per_50_extra_skill_points;
@@ -253,7 +274,7 @@ internal class PromotionManager
 		return "ABORT";
 	}
 
-	public string GetNameSuffix(CharacterObject co)
+	public string GetNameSuffix(CharacterObject co, CultureObject culture)
 	{
 		List<string> list = new List<string>();
 		if (co.IsRanged)
@@ -268,7 +289,7 @@ internal class PromotionManager
 		{
 			list.AppendList(NameList.infantry_suff);
 		}
-		switch (DSCompat.CultureKey(co.Culture))
+		switch (DSCompat.CultureKey(culture))
 		{
 		case "aserai":
 			list.AppendList(NameList.aserai_suff);
@@ -295,27 +316,27 @@ internal class PromotionManager
 			list.AppendList(NameList.vlandian_suff);
 			break;
 		}
-		if (co.Culture.StringId == "criminals")
+		if (culture.StringId == "criminals")
 		{
 			list.Clear();
 			list.AppendList(NameList.criminal_suff);
 		}
-		else if (co.Culture.StringId == "criminals2")
+		else if (culture.StringId == "criminals2")
 		{
 			list.Clear();
 			list.AppendList(NameList.criminal2_suff);
 		}
-		else if (co.Culture.StringId == "criminals3")
+		else if (culture.StringId == "criminals3")
 		{
 			list.Clear();
 			list.AppendList(NameList.criminal3_suff);
 		}
-		else if (co.Culture.StringId == "pirates")
+		else if (culture.StringId == "pirates")
 		{
 			list.Clear();
 			list.AppendList(NameList.pirates_suff);
 		}
-		else if (co.Culture.StringId == "shift_sand")
+		else if (culture.StringId == "shift_sand")
 		{
 			list.Clear();
 			list.AppendList(NameList.shiftingsands_suff);
@@ -393,12 +414,13 @@ internal class PromotionManager
 		{
 			return;
 		}
-		CharacterObject randomElementWithPredicate = DSCompat.GetRandomWanderer(co.Culture, (CharacterObject x) => x.Occupation == Occupation.Wanderer && x.IsFemale == co.IsFemale && x.CivilianEquipments != null);
+		CultureObject heroCulture = ResolveHeroCulture(co.Culture);
+		CharacterObject randomElementWithPredicate = DSCompat.GetRandomWanderer(heroCulture, (CharacterObject x) => x.Occupation == Occupation.Wanderer && x.IsFemale == co.IsFemale && x.CivilianEquipments != null);
 		if (randomElementWithPredicate == null)
 		{
 			if (!ignore_cautions)
 			{
-				InformationManager.DisplayMessage(new InformationMessage("CAUTION: No wanderer template with culture " + co.Culture.Name?.ToString() + " available.\nChoosing randomly instead.", Colors.Yellow));
+				InformationManager.DisplayMessage(new InformationMessage("CAUTION: No wanderer template with culture " + heroCulture?.Name?.ToString() + " available.\nChoosing randomly instead.", Colors.Yellow));
 			}
 			randomElementWithPredicate = DSCompat.GetRandomWanderer(CharacterObject.PlayerCharacter.Culture, (CharacterObject x) => x.Occupation == Occupation.Wanderer && x.IsFemale == co.IsFemale && x.CivilianEquipments != null);
 		}
@@ -428,14 +450,14 @@ internal class PromotionManager
 			else
 			{
 				flag = true;
-				hero.SetName(new TextObject(text + GetNameSuffix(co)), new TextObject(text));
+				hero.SetName(new TextObject(text + GetNameSuffix(co, heroCulture)), new TextObject(text));
 			}
 		}
 		if (!using_extern_namelist || !flag)
 		{
-			hero.SetName(new TextObject(hero.FirstName.ToString() + GetNameSuffix(co)), hero.FirstName);
+			hero.SetName(new TextObject(hero.FirstName.ToString() + GetNameSuffix(co, heroCulture)), hero.FirstName);
 		}
-		hero.Culture = co.Culture;
+		hero.Culture = heroCulture;
 		hero.CharacterObject.DefaultFormationGroup = co.DefaultFormationGroup;
 		hero.ChangeState(Hero.CharacterStates.Active);
 		AddCompanionAction.Apply(Clan.PlayerClan, hero);
@@ -1032,7 +1054,8 @@ internal class PromotionManager
 		{
 			return;
 		}
-		CharacterObject randomElementWithPredicate = DSCompat.GetRandomWanderer(co.Culture, (CharacterObject x) => x.Occupation == Occupation.Wanderer && x.IsFemale == co.IsFemale && x.CivilianEquipments != null);
+		CultureObject heroCulture = ResolveHeroCulture(co.Culture);
+		CharacterObject randomElementWithPredicate = DSCompat.GetRandomWanderer(heroCulture, (CharacterObject x) => x.Occupation == Occupation.Wanderer && x.IsFemale == co.IsFemale && x.CivilianEquipments != null);
 		if (randomElementWithPredicate == null)
 		{
 			randomElementWithPredicate = DSCompat.GetRandomWanderer(CharacterObject.PlayerCharacter.Culture, (CharacterObject x) => x.Occupation == Occupation.Wanderer && x.IsFemale == co.IsFemale && x.CivilianEquipments != null);
@@ -1042,8 +1065,8 @@ internal class PromotionManager
 			return;
 		}
 		Hero hero2 = HeroCreator.CreateSpecialHero(randomElementWithPredicate, null, null, null, rand.Next(20, 50));
-		hero2.SetName(new TextObject(hero2.FirstName.ToString() + GetNameSuffix(co)), hero2.FirstName);
-		hero2.Culture = co.Culture;
+		hero2.SetName(new TextObject(hero2.FirstName.ToString() + GetNameSuffix(co, heroCulture)), hero2.FirstName);
+		hero2.Culture = heroCulture;
 		hero2.ChangeState(Hero.CharacterStates.Active);
 		AddHeroToPartyAction.Apply(hero2, party);
 		CampaignEventDispatcher.Instance.OnHeroCreated(hero2);
